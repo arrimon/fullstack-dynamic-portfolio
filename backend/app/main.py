@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -10,11 +11,11 @@ from slowapi.errors import RateLimitExceeded
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.database import check_database_connection
 from app.core.honeypot import HoneypotMiddleware
 from app.core.logging import RequestLoggingMiddleware, configure_logging
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
+from app.services.keep_alive import keep_alive_loop
 
 logger = logging.getLogger("portfolio.app")
 
@@ -27,8 +28,16 @@ async def lifespan(app: FastAPI):
     for folder in ("projects", "resumes", "technologies", "experience", "certifications"):
         os.makedirs(os.path.join(upload_dir, folder), exist_ok=True)
     logger.info("Portfolio API starting (env=%s)", settings.app_env)
-    yield
-    logger.info("Portfolio API shutting down")
+    keep_alive_task = asyncio.create_task(keep_alive_loop())
+    try:
+        yield
+    finally:
+        keep_alive_task.cancel()
+        try:
+            await keep_alive_task
+        except asyncio.CancelledError:
+            pass
+        logger.info("Portfolio API shutting down")
 
 
 app = FastAPI(
@@ -74,4 +83,4 @@ def root():
 
 @app.get("/health", summary="Health check", tags=["Meta"])
 def health():
-    return {"status": "ok", "database": check_database_connection()}
+    return {"status": "ok"}
