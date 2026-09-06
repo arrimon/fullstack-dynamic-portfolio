@@ -24,9 +24,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "base-uri 'self'; "
                 "img-src 'self' data: https:; "
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-                "script-src 'self' https://cdn.jsdelivr.net; "
-                "font-src 'self' data:; "
-                "connect-src 'self'; "
+                "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+                "font-src 'self' data: https://fonts.googleapis.com https://fonts.gstatic.com; "
+                "connect-src 'self' https://cdn.jsdelivr.net; "
+                "object-src 'none'; "
                 "frame-ancestors 'none'"
             ),
             "Permissions-Policy": (
