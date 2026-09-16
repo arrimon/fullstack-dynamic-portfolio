@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import urllib.request
+import httpx
 
 from app.core.config import settings
 
@@ -17,16 +17,20 @@ async def keep_alive_loop() -> None:
         settings.keep_alive_interval,
         settings.keep_alive_url,
     )
-    while True:
-        try:
-            await asyncio.to_thread(_ping, settings.keep_alive_url, settings.keep_alive_timeout)
-            logger.info("[KeepAlive] Ping successful")
-        except Exception as exc:  # noqa: BLE001 - never crash on failed ping
-            logger.warning("[KeepAlive] Ping failed: %s", exc)
-        await asyncio.sleep(settings.keep_alive_interval)
-
-
-def _ping(url: str, timeout: int) -> None:
-    req = urllib.request.Request(url, method="GET")
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        resp.read()
+    # Allow the server a brief startup window before firing the first keep-alive ping
+    await asyncio.sleep(5)
+    async with httpx.AsyncClient(
+        timeout=settings.keep_alive_timeout,
+        headers={"User-Agent": "Portfolio-KeepAlive/1.0"},
+    ) as client:
+        while True:
+            try:
+                response = await client.get(settings.keep_alive_url)
+                logger.info(
+                    "[KeepAlive] Ping to %s successful (status=%s)",
+                    settings.keep_alive_url,
+                    response.status_code,
+                )
+            except Exception as exc:  # noqa: BLE001 - never crash on failed ping
+                logger.warning("[KeepAlive] Ping failed: %s", exc)
+            await asyncio.sleep(settings.keep_alive_interval)

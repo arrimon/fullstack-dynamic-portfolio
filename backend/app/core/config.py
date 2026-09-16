@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     storage_driver: str = "local"
 
     keep_alive_enabled: bool = False
-    keep_alive_url: str = "https://fullstack-dynamic-portfolio-tai9.onrender.com/health"
+    keep_alive_url: str = "https://fullstack-dynamic-portfolio-tai9.onrender.com"
     keep_alive_interval: int = 300
     keep_alive_timeout: int = 10
 
